@@ -1,0 +1,32 @@
+{
+  "name": "openapi3-tester",
+  "version": "1.0.0",
+  "description": "Simple customizable testing for APIs defined with OpenAPI v3 spec",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run mocha && npm run lint ",
+    "lint": "standard --fix index.js",
+    "mocha": "mocha test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naugtur/openapi3-tester.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/naugtur/openapi3-tester/issues"
+  },
+  "homepage": "https://github.com/naugtur/openapi3-tester#readme",
+  "dependencies": {
+    "bluebird": "^3.5.1",
+    "mocha": "^5.2.0",
+    "oas3-chow-chow": "^0.7.0",
+    "request": "^2.88.0",
+    "should": "^13.2.3"
+  },
+  "devDependencies": {
+    "standard": "^11.0.1"
+  }
+}
