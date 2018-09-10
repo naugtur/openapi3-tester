@@ -3,6 +3,7 @@ const p = require('bluebird')
 const request = p.promisify(require('request'))
 const should = require('should')
 const ChowChow = require('oas3-chow-chow').default
+const debug = require('debug')('openapi3-tester')
 
 module.exports = {
   use (definition) {
@@ -30,7 +31,7 @@ module.exports = {
       try {
         input.chow.validateResponse(path, responseCore)
       } catch (e) {
-        console.log(e)
+        debug('raw validator error', e)
         if (e.meta) {
           this.params = {
             operator:
@@ -59,17 +60,22 @@ module.exports = {
               chow.validateRequest(options.path, options.reqOptions)
             }
           })
-          .then(() =>
-            request(
-              Object.assign(
-                {
-                  uri: `${baseUrl}${options.path}`
-                },
-                options.reqOptions
-              )
+          .then(() => {
+            const opts = Object.assign(
+              {
+                uri: `${baseUrl}${options.path}`
+              },
+              options.reqOptions
             )
-          )
+            debug('request options', opts)
+            return request(opts)
+          })
           .then(response => {
+            debug('response', {
+              headers: response.headers,
+              body: response.body,
+              statusCode: response.statusCode
+            })
             try {
               response.body = JSON.parse(response.body)
             } catch (e) {}
