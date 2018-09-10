@@ -73,6 +73,9 @@ module.exports = {
             try {
               response.body = JSON.parse(response.body)
             } catch (e) {}
+            if (!response.headers['content-type']) {
+              throw Error('No content-type header in response')
+            }
             response.headers['content-type'] = response.headers['content-type'].split(';')[0]
 
             if (options.badRequest && !options.expectedStatus) {
