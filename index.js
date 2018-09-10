@@ -33,12 +33,16 @@ module.exports = {
       } catch (e) {
         debug('raw validator error', e)
         if (e.meta) {
+          var errors = e.meta.rawErrors
+          if (Array.isArray(errors)) {
+            errors = errors.map(re => re.error).join('\n')
+          }
           this.params = {
             operator:
               'to be a valid API response. ' +
               e.message +
               ':\n' +
-              e.meta.rawErrors.map(re => re.error).join('\n')
+              errors
           }
         } else {
           this.params = {
