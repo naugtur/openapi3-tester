@@ -1,6 +1,6 @@
 {
   "name": "openapi3-tester",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Simple customizable testing for APIs defined with OpenAPI v3 spec",
   "main": "index.js",
   "scripts": {
