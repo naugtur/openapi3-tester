@@ -57,12 +57,13 @@ module.exports = {
     return {
       test (options) {
         const baseUrl = options.url || definition.servers[0].url
-        options.reqOptions.header = options.reqOptions.header || options.reqOptions.headers;
 
         return p
           .try(() => {
             if (!options.badRequest) {
-              chow.validateRequest(options.path, options.reqOptions)
+              chow.validateRequest(options.path, Object.assign({
+                header: options.reqOptions.headers
+              }, options.reqOptions))
             }
           })
           .then(() => {
@@ -84,7 +85,7 @@ module.exports = {
             try {
               response.body = JSON.parse(response.body)
             } catch (e) {}
-            response.headers['content-type'] = 
+            response.headers['content-type'] =
               response.headers['content-type'] && response.headers['content-type'].split(';')[0]
 
             if (options.badRequest && !options.expectedStatus) {
