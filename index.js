@@ -57,6 +57,7 @@ module.exports = {
     return {
       test (options) {
         const baseUrl = options.url || definition.servers[0].url
+        options.reqOptions.header = options.reqOptions.header || options.reqOptions.headers;
 
         return p
           .try(() => {
@@ -83,10 +84,8 @@ module.exports = {
             try {
               response.body = JSON.parse(response.body)
             } catch (e) {}
-            if (!response.headers['content-type']) {
-              throw Error('No content-type header in response')
-            }
-            response.headers['content-type'] = response.headers['content-type'].split(';')[0]
+            response.headers['content-type'] = 
+              response.headers['content-type'] && response.headers['content-type'].split(';')[0]
 
             if (options.badRequest && !options.expectedStatus) {
               response.statusCode.should.be.aboveOrEqual(400)
