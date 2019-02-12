@@ -14,16 +14,18 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/naugtur/openapi3-tester/issues"
   },
   "homepage": "https://github.com/naugtur/openapi3-tester#readme",
+  "files": ["/index.js"],
   "dependencies": {
     "bluebird": "^3.5.3",
     "debug": "^3.2.6",
     "mocha": "^5.2.0",
     "oas3-chow-chow": "^0.13.0",
+    "openapi-schema-validator": "^3.0.3",
     "request": "^2.88.0",
     "should": "^13.2.3"
   },

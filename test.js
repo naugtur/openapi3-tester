@@ -1,10 +1,9 @@
 const apiTester = require('./index')
 const definition = require('./exampleDefinition')
-
+const assert = require('assert')
 const testAPI = apiTester.use(definition).test
 
 describe('test api', () => {
-
   it('should handle a successful call', () =>
     testAPI({
       path: '/pet/1',
@@ -42,5 +41,14 @@ describe('test api', () => {
     }).then(response => {
       response.body.should.have.property('message')
     }))
+})
+
+describe('validation', () => {
+  const definition1 = require('./badDefinitions/exampleDefinition.1.json')
+  const definition2 = require('./badDefinitions/exampleDefinition.2.json')
+  it('should find chowchow detectable errors', () =>
+    assert.throws(()=>apiTester.use(definition1)))
     
+    it('should find errors with the validator', () => 
+    assert.throws(()=>apiTester.use(definition2)))
 })
