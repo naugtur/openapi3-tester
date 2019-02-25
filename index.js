@@ -1,5 +1,6 @@
 'use strict'
 const p = require('bluebird')
+const _ = require('lodash')
 const request = p.promisify(require('request'))
 const should = require('should')
 const ChowChow = require('oas3-chow-chow').default
@@ -23,6 +24,8 @@ module.exports = {
       throw err
     }
     const chow = new ChowChow(definition)
+
+    const coverage = indexDefinitionForCoverage(definition)
 
     should.Assertion.add('chowValidResponse', function (input) {
       this.params = {
@@ -91,6 +94,9 @@ module.exports = {
               },
               options.reqOptions
             )
+
+            coverage.mark(options.path, opts.method, options.expectedStatus)
+
             debug('request options', opts)
             return request(opts)
           })
@@ -119,7 +125,50 @@ module.exports = {
 
             return response
           })
+      },
+      getCoverage () {
+        return coverage.data
+      },
+      getCoverageNumbers () {
+        return coverage.data.reduce((mem, data) => {
+          mem[data.key] = data.matchingCalls
+          return mem
+        }, {})
       }
+    }
+  }
+}
+
+const separator = '->'
+function indexKey (path, method, code) {
+  return `${path}${separator}${method}${separator}${code}`
+}
+function indexDefinitionForCoverage (definition) {
+  const index = []
+  _.forIn(definition.paths, (path, pathName) => {
+    _.forIn(path, (method, methodName) => {
+      _.forIn(method.responses, (response, code) => {
+        const key = indexKey(pathName, methodName, code)
+        index.push({
+          key: key,
+          matchingCalls: 0,
+          // I didn't feel comfortable with this RegExp idea either, but that feeling passes ;)
+          matcher: RegExp(indexKey(pathName.replace(/{[a-z0-9]*}/gi, '[^/]*') + '(/)?', methodName, code.replace('default', '.*')))
+        })
+      })
+    })
+  })
+
+  return {
+    data: index,
+    mark (path, method, code) {
+      const key = indexKey(path, method, code)
+
+      index.forEach(entry => {
+        if (entry.matcher.test(key)) {
+          entry.matchingCalls++
+        }
+      })
     }
   }
 }

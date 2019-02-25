@@ -1,11 +1,11 @@
 const apiTester = require('./index')
 const definition = require('./exampleDefinition')
 const assert = require('assert')
-const testAPI = apiTester.use(definition).test
+const API = apiTester.use(definition)
 
 describe('test api', () => {
   it('should handle a successful call', () =>
-    testAPI({
+    API.test({
       path: '/pet/1',
       reqOptions: {
         headers: { accept: 'application/json' },
@@ -16,7 +16,7 @@ describe('test api', () => {
     }))
 
   it('should handle a good request producing failure', () =>
-    testAPI({
+    API.test({
       path: '/pet/121242341231123',
       reqOptions: {
         headers: { accept: 'application/json' },
@@ -29,7 +29,7 @@ describe('test api', () => {
     }))
 
   it('should handle invalid input', () =>
-    testAPI({
+    API.test({
       path: '/pet/ohnoerror',
       badRequest: true,
       reqOptions: {
@@ -41,6 +41,14 @@ describe('test api', () => {
     }).then(response => {
       response.body.should.have.property('message')
     }))
+
+  it('should provide coverage report', ()=>{
+    console.log(API.getCoverage())
+    const nums = API.getCoverageNumbers()
+    console.log(nums)
+    nums['/pet/{petId}->get->200'].should.eql(1)
+    nums['/pet/{petId}->post->201'].should.eql(0)
+  })
 })
 
 describe('validation', () => {
