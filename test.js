@@ -6,7 +6,7 @@ const API = apiTester.use(definition)
 describe('test api', () => {
   it('should handle a successful call', () =>
     API.test({
-      path: '/pet/1',
+      path: '/pet/10',
       reqOptions: {
         headers: { accept: 'application/json' },
         qs: {},
