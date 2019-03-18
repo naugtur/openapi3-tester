@@ -7,6 +7,8 @@ const ChowChow = require('oas3-chow-chow').default
 const debug = require('debug')('openapi3-tester')
 const util = require('util')
 
+const TOTAL_KEY = '::total::'
+
 const OpenapiSchemaValidator = require('openapi-schema-validator').default || require('openapi-schema-validator')
 const validator = new OpenapiSchemaValidator({
   version: 3
@@ -132,8 +134,13 @@ module.exports = {
       getCoverageNumbers () {
         return coverage.data.reduce((mem, data) => {
           mem[data.key] = data.matchingCalls
+          if (!data.key.match(/default$/)) {
+            mem[TOTAL_KEY].all++
+            mem[TOTAL_KEY].checked += (data.matchingCalls ? 1 : 0)
+            mem[TOTAL_KEY].percent = Math.floor(100 * mem[TOTAL_KEY].checked / mem[TOTAL_KEY].all)
+          }
           return mem
-        }, {})
+        }, {[TOTAL_KEY]: {all: 0, checked: 0, percent: 0}})
       }
     }
   }
