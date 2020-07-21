@@ -1,7 +1,6 @@
 'use strict'
-const p = require('bluebird')
-const _ = require('lodash')
-const request = p.promisify(require('request'))
+const forIn = require('lodash.forin')
+const fetch = require('node-fetch')
 const should = require('should')
 const ChowChow = require('oas3-chow-chow').default
 const debug = require('debug')('openapi3-tester')
@@ -36,20 +35,24 @@ module.exports = {
         }`
       }
 
-      const status = this.obj.statusCode
+      const status = this.obj.status
       const responseCore = {
-        method: this.obj.request.method,
-        status: '' + this.obj.statusCode,
+        // method: input.method,
+        status: '' + this.obj.status,
         header: this.obj.headers,
         body: this.obj.body
       }
       const path = input.path
       this.obj = responseCore
       if (input.expectedStatus) {
-        status.should.eql(input.expectedStatus)
+        should(status).eql(input.expectedStatus)
       }
       try {
-        input.chow.validateResponse(path, responseCore)
+        if (input.operationId) {
+          input.chow.validateResponseByOperationId(input.operationId, responseCore)
+        } else {
+          input.chow.validateResponseByPath(path, input.method, responseCore)
+        }
       } catch (e) {
         debug('raw validator error', e)
         if (e.meta) {
@@ -74,52 +77,74 @@ module.exports = {
     return {
       test (options) {
         const baseUrl = options.url || definition.servers[0].url
+        const url = new URL(`${baseUrl}${options.path}`)
+        if (options.reqOptions.qs) {
+          Object.keys(options.reqOptions.qs).map(k => {
+            url.searchParams.set(k, options.reqOptions.qs[k])
+          })
+        }
 
-        return p
-          .try(() => {
+        return Promise.resolve()
+          .then(() => {
             if (!options.badRequest) {
-              chow.validateRequest(
-                options.path,
-                Object.assign(
-                  {
-                    header: options.reqOptions.headers
-                  },
-                  options.reqOptions
+              if (options.operationId) {
+                chow.validateRequestByOperationId(
+                  options.operationId,
+                  Object.assign(
+                    {
+                      header: options.reqOptions.headers
+                    },
+                    options.reqOptions
+                  )
                 )
-              )
+              } else {
+                chow.validateRequestByPath(
+                  options.path,
+                  options.reqOptions.method || 'get',
+                  Object.assign(
+                    {
+                      header: options.reqOptions.headers
+
+                    },
+                    options.reqOptions
+                  )
+                )
+              }
             }
           })
           .then(() => {
-            const opts = Object.assign(
-              {
-                uri: `${baseUrl}${options.path}`
-              },
-              options.reqOptions
-            )
+            coverage.mark(options.path, options.reqOptions.method, options.expectedStatus)
 
-            coverage.mark(options.path, opts.method, options.expectedStatus)
-
-            debug('request options', opts)
-            return request(opts)
+            debug('request options', options.reqOptions)
+            return fetch(url.toString(), options.reqOptions)
           })
           .then(response => {
-            debug('response', {
-              headers: response.headers,
-              body: response.body,
-              statusCode: response.statusCode
-            })
-            try {
-              response.body = JSON.parse(response.body)
-            } catch (e) {}
+            debug('response', response)
+            return response.json()
+              .then(body => {
+                return {
+                  headers: response.headers,
+                  url: response.url,
+                  body: body,
+                  status: response.status
+                }
+              }, err => {
+                debug('response parsing error', err)
+                return response
+              })
+          })
+          .then(response => {
             response.headers['content-type'] =
               response.headers['content-type'] &&
               response.headers['content-type'].split(';')[0]
 
             if (options.badRequest && !options.expectedStatus) {
-              response.statusCode.should.be.aboveOrEqual(400)
+              response.status.should.be.aboveOrEqual(400)
             }
 
-            response.should.be.chowValidResponse({
+            should(response).be.chowValidResponse({
+              method: options.reqOptions.method,
+              operationId: options.operationId,
               expectedStatus: options.expectedStatus,
               chow,
               path: options.path
@@ -140,7 +165,7 @@ module.exports = {
             mem[TOTAL_KEY].percent = Math.floor(100 * mem[TOTAL_KEY].checked / mem[TOTAL_KEY].all)
           }
           return mem
-        }, {[TOTAL_KEY]: {all: 0, checked: 0, percent: 0}})
+        }, { [TOTAL_KEY]: { all: 0, checked: 0, percent: 0 } })
       }
     }
   }
@@ -152,9 +177,9 @@ function indexKey (path, method, code) {
 }
 function indexDefinitionForCoverage (definition) {
   const index = []
-  _.forIn(definition.paths, (path, pathName) => {
-    _.forIn(path, (method, methodName) => {
-      _.forIn(method.responses, (response, code) => {
+  forIn(definition.paths, (path, pathName) => {
+    forIn(path, (method, methodName) => {
+      forIn(method.responses, (response, code) => {
         const key = indexKey(pathName, methodName, code)
         index.push({
           key: key,

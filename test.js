@@ -6,13 +6,28 @@ const API = apiTester.use(definition)
 describe('test api', () => {
   it('should handle a successful call', () =>
     API.test({
-      path: '/pet/10',
+      path: '/pet/1',
       reqOptions: {
         headers: { accept: 'application/json' },
         qs: {},
         method: 'get'
       },
       expectedStatus: 200
+    }))
+  it('should handle a successful call without response body', () =>
+    API.test({
+      path: '/pet/1',
+      reqOptions: {
+        headers: { accept: 'application/json' },
+        qs: {
+          q: '"&"'
+        },
+        method: 'post'
+      },
+      expectedStatus: 200
+    })
+    .then(response=>{
+      response.url.split('?')[1].should.eql('q=%22%26%22')
     }))
 
   it('should handle a good request producing failure', () =>
@@ -47,7 +62,8 @@ describe('test api', () => {
     const nums = API.getCoverageNumbers()
     console.log(nums)
     nums['/pet/{petId}->get->200'].should.eql(1)
-    nums['/pet/{petId}->post->201'].should.eql(0)
+    nums['/pet->get->200'].should.eql(0)
+    nums['/pet/{petId}->post->200'].should.eql(1)
   })
 })
 
