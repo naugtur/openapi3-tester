@@ -37,10 +37,14 @@ module.exports = {
 
       const status = this.obj.status
       const responseCore = {
-        // method: input.method,
+        method: input.method,
         status: '' + this.obj.status,
         header: this.obj.headers,
         body: this.obj.body
+      }
+      // Opinionated workaround for the awfully common case of returning a content-type with an empty response
+      if (!responseCore.body || (typeof responseCore.body === 'string' && responseCore.body.length === 0)) {
+        responseCore.header['content-type'] = undefined
       }
       const path = input.path
       this.obj = responseCore
@@ -84,56 +88,61 @@ module.exports = {
           })
         }
 
+        if (typeof options.reqOptions.body === 'object' && !options.reqOptions.headers['content-type']) {
+          options.reqOptions.headers['content-type'] = 'application/json'
+        }
+
         return Promise.resolve()
           .then(() => {
             if (!options.badRequest) {
+              const requestChowCompatible = Object.assign(
+                {
+                  header: options.reqOptions.headers
+                },
+                options.reqOptions
+              )
               if (options.operationId) {
                 chow.validateRequestByOperationId(
                   options.operationId,
-                  Object.assign(
-                    {
-                      header: options.reqOptions.headers
-                    },
-                    options.reqOptions
-                  )
+                  requestChowCompatible
                 )
               } else {
                 chow.validateRequestByPath(
                   options.path,
                   options.reqOptions.method || 'get',
-                  Object.assign(
-                    {
-                      header: options.reqOptions.headers
-
-                    },
-                    options.reqOptions
-                  )
+                  requestChowCompatible
                 )
               }
             }
           })
           .then(() => {
             coverage.mark(options.path, options.reqOptions.method, options.expectedStatus)
-
-            debug('request options', options.reqOptions)
-            return fetch(url.toString(), options.reqOptions)
+            if (typeof options.reqOptions.body === 'object') {
+              options.reqOptions.body = JSON.stringify(options.reqOptions.body)
+            }
+            const urlString = url.toString()
+            debug('request url:', urlString, 'options:', options.reqOptions)
+            return fetch(urlString, options.reqOptions)
           })
           .then(response => {
-            debug('response', response)
-            return response.json()
+            return response.text()
               .then(body => {
+                try {
+                  body = JSON.parse(body)
+                } catch (err) {
+                  debug('response parsing error', err, body)
+                }
                 return {
-                  headers: response.headers,
+                  headers: flattenSingleValues(response.headers.raw()),
                   url: response.url,
                   body: body,
                   status: response.status
                 }
-              }, err => {
-                debug('response parsing error', err)
-                return response
               })
           })
           .then(response => {
+            debug('response', response)
+            // opinionated: clean up the reminder of the content-type definition as people never put the encoding in their spec but most servers will return it
             response.headers['content-type'] =
               response.headers['content-type'] &&
               response.headers['content-type'].split(';')[0]
@@ -171,6 +180,16 @@ module.exports = {
   }
 }
 
+function flattenSingleValues (kv) {
+  return Object.keys(kv).reduce((acc, k) => {
+    if (kv[k].length === 1) {
+      acc[k] = kv[k][0]
+    } else {
+      acc[k] = kv[k]
+    }
+    return acc
+  }, {})
+}
 const separator = '->'
 function indexKey (path, method, code) {
   return `${path}${separator}${method}${separator}${code}`

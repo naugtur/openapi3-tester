@@ -9,26 +9,43 @@ describe('test api', () => {
       path: '/pet/1',
       reqOptions: {
         headers: { accept: 'application/json' },
-        qs: {},
+        qs: {
+          q: '"&"'
+        },
         method: 'get'
       },
       expectedStatus: 200
+    }).then(response=>{
+      response.url.split('?')[1].should.eql('q=%22%26%22')
     }))
+
   it('should handle a successful call without response body', () =>
     API.test({
       path: '/pet/1',
       reqOptions: {
-        headers: { accept: 'application/json' },
-        qs: {
-          q: '"&"'
-        },
-        method: 'post'
+        headers: { 'accept': 'application/json',  'content-type': 'application/x-www-form-urlencoded' },
+        method: 'post',
+        body: new URLSearchParams({
+          "id": 1,
+          "name": 'fafik',
+          "tag": 'yes'
+        }).toString()
       },
       expectedStatus: 200
-    })
-    .then(response=>{
-      response.url.split('?')[1].should.eql('q=%22%26%22')
     }))
+    
+  it('should report request body schema errors', () =>
+    API.test({
+      path: '/pet/2',
+      reqOptions: {
+        headers: { accept: 'application/json' },
+        method: 'post',
+        body: {
+          "name": 'fafik',
+        }
+      },
+      expectedStatus: 200
+    }).should.be.rejectedWith(/RequestValidationError/gi))
 
   it('should handle a good request producing failure', () =>
     API.test({
