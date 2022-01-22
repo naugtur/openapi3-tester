@@ -30,7 +30,7 @@
     "debug": "^4.1.1",
     "lodash.forin": "^4.4.0",
     "mocha": "^8.0.1",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^3.1.1",
     "oas3-chow-chow": "^1.1.0",
     "openapi-schema-validator": "^7.0.0",
     "should": "^13.2.3"
